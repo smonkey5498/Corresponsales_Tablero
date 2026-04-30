@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BCS · Dashboard Corresponsales Bancarios</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <!-- SheetJS -->
+  <script src="./libs/xlsx.full.min.js"></script>
+  <script src="./libs/apexcharts.min.js"></script>
+  <!-- ApexCharts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.44.0/apexcharts.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════ HEADER ═══ -->
+<header class="header">
+  <div class="header-inner">
+    <div class="header-brand">
+      <img id="logo-img" src="" alt="Banco Caja Social" class="header-logo" />
+      <div class="header-titles">
+        <h1 class="header-title">Dashboard BCS</h1>
+        <span class="header-subtitle">Corresponsales Bancarios</span>
+      </div>
+    </div>
+    <div class="header-meta">
+      <div class="meta-pill" id="fecha-corte">
+        <span class="meta-icon"></span>
+        <span id="fecha-corte-val">–</span>
+      </div>
+      <button class="export-btn hidden" id="btn-export" title="Descargar HTML para enviar por correo">
+        <span>⬇</span> Descargar Informe
+      </button>
+      <label class="upload-btn" for="file-input">
+        <span class="upload-icon"></span>
+        <span id="upload-label">Cargar Excel</span>
+        <input type="file" id="file-input" accept=".xlsx,.xls" style="display:none" />
+      </label>
+    </div>
+  </div>
+</header>
+
+<!-- ═════════════════════════════════════════════ LOADER ═════ -->
+<div id="loader" class="loader-overlay hidden">
+  <div class="loader-box">
+    <div class="loader-spinner"></div>
+    <p class="loader-text">Procesando datos…</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════ MAIN CONTENT ══ -->
+<main id="main-content" class="main hidden">
+
+  <!-- ── FILTROS ── -->
+  <section class="filters-bar">
+    <div class="filter-group">
+      <label class="filter-label">Territorio</label>
+      <select id="filter-territorio" class="filter-select">
+        <option value="all">Todos</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">Zona</label>
+      <select id="filter-zona" class="filter-select">
+        <option value="all">Todas</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">Gestor</label>
+      <select id="filter-gestor" class="filter-select">
+        <option value="all">Todos</option>
+      </select>
+    </div>
+    <button class="filter-reset" id="btn-reset">↺ Limpiar filtros</button>
+  </section>
+
+  <!-- ── KPI CARDS ── -->
+  <section class="kpi-grid kpi-grid-adv">
+
+    <!-- 1. Cobertura -->
+    <div class="kpi-adv-card kpi-theme-blue">
+      <div class="kpi-adv-top">
+        <span class="kpi-adv-label">Cobertura</span>
+        <span class="kpi-adv-icon"></span>
+      </div>
+      <div class="kpi-adv-main" id="kpi-portafolio">–</div>
+      <div class="kpi-adv-meta" id="kpi-cobertura-meta">Meta: – · –% cumplimiento</div>
+      <div class="kpi-adv-divider"></div>
+      <div class="kpi-adv-footer">
+        <div class="kpi-adv-chip kpi-chip-neutral">
+          <span id="kpi-clientes">–</span>
+          <small>Clientes Uni.</small>
+        </div>
+        <div class="kpi-adv-chip kpi-chip-warn">
+          <span id="kpi-activacion-pct">–</span>
+          <small>% Activación</small>
+        </div>
+        <div class="kpi-adv-chip kpi-chip-danger">
+          <span id="kpi-cancelados">–</span>
+          <small>Cancelac.</small>
+        </div>
+        <div class="kpi-adv-chip kpi-chip-orange">
+          <span id="kpi-inactivos-foot">–</span>
+          <small>Inactivos</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Transaccionalidad -->
+    <div class="kpi-adv-card kpi-theme-blue">
+      <div class="kpi-adv-top">
+        <span class="kpi-adv-label">Transaccionalidad</span>
+        <span class="kpi-adv-icon"></span>
+      </div>
+      <div class="kpi-adv-main" id="kpi-tx">–</div>
+      <div class="kpi-adv-meta" id="kpi-tx-meta">Meta: – · –% ejec.</div>
+      <div class="kpi-adv-divider"></div>
+      <div class="kpi-adv-footer">
+        <div class="kpi-adv-chip kpi-chip-neutral" style="flex:1.4">
+          <span id="kpi-meta-tx-val">–</span>
+          <small>PDS SIN TX</small>
+        </div>
+        <div class="kpi-adv-chip kpi-chip-danger" style="flex:1.4">
+          <span id="kpi-sin-tx-pct">–</span>
+          <small>% PDS SIN TX.</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Renovaciones -->
+    <div class="kpi-adv-card kpi-theme-blue">
+      <div class="kpi-adv-top">
+        <span class="kpi-adv-label">Renovaciones</span>
+        <span class="kpi-adv-icon"></span>
+      </div>
+      <div class="kpi-adv-main" id="kpi-renovaciones">–</div>
+      <div class="kpi-adv-meta" id="kpi-renov-meta">Meta: – · Avance: –%</div>
+      <div class="kpi-adv-divider"></div>
+      <div class="kpi-adv-footer">
+        <div class="kpi-adv-chip kpi-chip-danger" style="flex:1.2">
+          <span id="kpi-renov-pend">–</span>
+          <small>Pend.</small>
+        </div>
+        <div class="kpi-adv-chip kpi-chip-warn" style="flex:2">
+          <span id="kpi-renov-pct">–</span>
+          <small>% Pend.</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Brechas -->
+    <div class="kpi-adv-card kpi-theme-orange">
+      <div class="kpi-adv-top">
+        <span class="kpi-adv-label">Brechas</span>
+        <span class="kpi-adv-icon"></span>
+      </div>
+      <div class="kpi-adv-main" id="kpi-brechas-total">–</div>
+      <div class="kpi-adv-meta" id="kpi-brechas-meta">Meta: – · –% cumpl.</div>
+      <div class="kpi-adv-divider"></div>
+      <div class="kpi-adv-footer">
+        <div class="kpi-adv-chip kpi-chip-neutral" style="flex:1.5">
+          <span id="kpi-brechas-realizadas">–</span>
+          <small>Realizadas</small>
+        </div>
+        <div class="kpi-adv-chip kpi-chip-warn" style="flex:2">
+          <span id="kpi-brechas-pct">–</span>
+          <small>% Cumpl.</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Morosidad -->
+    <div class="kpi-adv-card kpi-theme-red">
+      <div class="kpi-adv-top">
+        <span class="kpi-adv-label">Morosidad</span>
+        <span class="kpi-adv-icon"></span>
+      </div>
+      <div class="kpi-adv-main kpi-main-red" id="kpi-mora">–</div>
+      <div class="kpi-adv-meta" id="kpi-mora-meta">En mora · – próximos vencimiento</div>
+      <div class="kpi-adv-divider"></div>
+      <div class="kpi-adv-footer">
+        <div class="kpi-adv-chip kpi-chip-danger" style="flex:1.2">
+          <span id="kpi-mora-count">–</span>
+          <small>% Mora</small>
+        </div>
+        <div class="kpi-adv-chip kpi-chip-orange" style="flex:2">
+          <span id="kpi-prox-vto-count">–</span>
+          <small>% Prox. Vto</small>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ── CHARTS ROW 1 ── -->
+  <section class="charts-row">
+    <div class="chart-card wide">
+      <div class="chart-header">
+        <h3 class="chart-title">Portafolio por Territorio</h3>
+        <span class="chart-badge">Activos vs Total</span>
+      </div>
+      <div id="chart-portafolio-territorio"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <h3 class="chart-title">Estado de Cartera</h3>
+        <span class="chart-badge">Distribución</span>
+      </div>
+      <div id="chart-cartera-estado"></div>
+    </div>
+  </section>
+
+  <!-- ── CHARTS ROW 2 ── -->
+  <section class="charts-row">
+    <div class="chart-card">
+      <div class="chart-header">
+        <h3 class="chart-title">Transaccionalidad por Zona</h3>
+        <span class="chart-badge">Total TX</span>
+      </div>
+      <div id="chart-tx-zona"></div>
+    </div>
+    <div class="chart-card wide">
+      <div class="chart-header">
+        <h3 class="chart-title">Portafolio por Zona</h3>
+        <span class="chart-badge">Ranking</span>
+      </div>
+      <div id="chart-portafolio-zona"></div>
+    </div>
+  </section>
+
+  <!-- ── CHARTS ROW 3 ── -->
+  <section class="charts-row">
+    <div class="chart-card">
+      <div class="chart-header">
+        <h3 class="chart-title">Embudo de Radicaciones</h3>
+        <span class="chart-badge">Estado</span>
+      </div>
+      <div id="chart-funnel-radicaciones"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <h3 class="chart-title">Embudo de Renovaciones</h3>
+        <span class="chart-badge">Estado</span>
+      </div>
+      <div id="chart-funnel-renovaciones"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <h3 class="chart-title">Brechas de Visitas</h3>
+        <span class="chart-badge">Cumplimiento</span>
+      </div>
+      <div id="chart-brechas"></div>
+    </div>
+  </section>
+
+  <!-- ── CHARTS ROW 4 ── -->
+  <section class="charts-row">
+    <div class="chart-card wide2">
+      <div class="chart-header">
+        <h3 class="chart-title">Zonas — Mora y Próximo Vencimiento</h3>
+        <span class="chart-badge">Corresponsales Titulares</span>
+      </div>
+      <div id="chart-mora-zona"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header">
+        <h3 class="chart-title">Actas SARLAFT</h3>
+        <span class="chart-badge">Por Mes y Tipo</span>
+      </div>
+      <div id="chart-sarlaft"></div>
+    </div>
+  </section>
+
+  <!-- ── TABLA PORTAFOLIO ── -->
+  <section class="table-section">
+    <div class="table-header">
+      <h3 class="chart-title">Tabla de Portafolio</h3>
+      <div class="table-controls">
+        <input type="text" id="table-search" class="table-search" placeholder="🔍 Buscar establecimiento, gestor…" />
+        <select id="table-estado" class="filter-select small">
+          <option value="all">Todos los estados</option>
+          <option value="Activo">Activo</option>
+          <option value="Inactivo">Inactivo</option>
+          <option value="Cancelado">Cancelado</option>
+        </select>
+        <span class="table-count" id="table-count">0 registros</span>
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table class="data-table" id="main-table">
+        <thead>
+          <tr>
+            <th>Gestor</th>
+            <th>Zona</th>
+            <th>Territorio</th>
+            <th>Establecimiento</th>
+            <th>Estado</th>
+            <th>Cartera</th>
+            <th>Total TX</th>
+            <th>Estrategia</th>
+            <th>Estado2</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+    <div class="pagination" id="pagination"></div>
+  </section>
+
+  <!-- ── INSIGHTS ── -->
+  <section class="insights-section">
+    <div class="insights-header">
+      <span class="insights-icon"></span>
+      <h3 class="chart-title">Conclusiones Automáticas</h3>
+    </div>
+    <div class="insights-grid" id="insights-grid">
+      <!-- filled by JS -->
+    </div>
+  </section>
+
+</main>
+
+<!-- ══════════════════════════════════════════ EMPTY STATE ═══ -->
+<div id="empty-state" class="empty-state">
+  <div class="empty-icon"></div>
+  <h2 class="empty-title">Bienvenido al Dashboard BCS</h2>
+  <p class="empty-desc">Carga el archivo <strong>PLANTILLA_BCS_CIFRAS.xlsx</strong> para visualizar todos los indicadores del canal corresponsal.</p>
+  <label class="upload-btn-big" for="file-input2">
+    <span>📂 Seleccionar Archivo Excel</span>
+    <input type="file" id="file-input2" accept=".xlsx,.xls" style="display:none" />
+  </label>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
